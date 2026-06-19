@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { computeCost } from "./cost";
 
 // Загружает мероприятие по токену вместе с выбранными блюдами и
 // рассчитывает стоимость на сервере (источник истины).
@@ -10,7 +11,16 @@ export async function getEventByToken(token: string) {
   if (!event) return null;
 
   const selectedDishIds = event.dishes.map((d) => d.dishId);
-  const perGuest = await selectedPerGuest(selectedDishIds);
+
+  // Тянем цену и признак perEvent выбранных позиций
+  const items = selectedDishIds.length
+    ? await prisma.dish.findMany({
+        where: { id: { in: selectedDishIds } },
+        select: { pricePerGuest: true, perEvent: true, informational: true },
+      })
+    : [];
+
+  const cost = computeCost(items, event.guests);
 
   return {
     id: event.id,
@@ -21,19 +31,10 @@ export async function getEventByToken(token: string) {
     guests: event.guests,
     status: event.status,
     selectedDishIds,
-    perGuest,
-    total: perGuest * event.guests,
+    perGuest: cost.perGuest,
+    eventFees: cost.eventFees,
+    total: cost.total,
   };
-}
-
-// Сумма цен выбранных активных блюд за одного гостя.
-async function selectedPerGuest(dishIds: string[]): Promise<number> {
-  if (dishIds.length === 0) return 0;
-  const dishes = await prisma.dish.findMany({
-    where: { id: { in: dishIds } },
-    select: { pricePerGuest: true },
-  });
-  return dishes.reduce((sum, d) => sum + d.pricePerGuest, 0);
 }
 
 export type ClientEvent = NonNullable<Awaited<ReturnType<typeof getEventByToken>>>;

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { CATEGORY_LABELS, CATEGORY_ORDER } from "@/lib/constants";
 import { formatDate, formatKopecks } from "@/lib/format";
+import { computeCost } from "@/lib/cost";
 import { StatusBadge } from "@/components/ui";
 import { Category } from "@prisma/client";
 import { EventLink } from "./EventLink";
@@ -23,8 +24,8 @@ export default async function AdminEventDetail({
   if (!event) notFound();
 
   const selectedDishes = event.dishes.map((ed) => ed.dish);
-  const perGuest = selectedDishes.reduce((s, d) => s + d.pricePerGuest, 0);
-  const total = perGuest * event.guests;
+  const cost = computeCost(selectedDishes, event.guests);
+  const { perGuest, eventFees, total } = cost;
 
   // Группировка выбранных блюд по категориям
   const byCategory = CATEGORY_ORDER.map((cat) => ({
@@ -109,6 +110,16 @@ export default async function AdminEventDetail({
               label="Стоимость на гостя"
               value={formatKopecks(perGuest)}
             />
+            <Row
+              label={`На гостях (× ${event.guests})`}
+              value={formatKopecks(perGuest * event.guests)}
+            />
+            {eventFees > 0 && (
+              <Row
+                label="Услуги за мероприятие"
+                value={formatKopecks(eventFees)}
+              />
+            )}
             <div className="border-t border-stone-200 pt-4 flex items-center justify-between">
               <span className="font-semibold text-stone-900">Итого</span>
               <span className="text-xl font-semibold text-brand-700">

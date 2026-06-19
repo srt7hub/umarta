@@ -9,6 +9,7 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   APPETIZER: "Закуски",
   SALAD: "Салаты",
   DRINK: "Напитки",
+  SERVICE: "Дополнительные услуги",
 };
 
 // Иконки-обложки категорий для визуального разделения списка
@@ -21,6 +22,7 @@ export const CATEGORY_ICONS: Record<Category, string> = {
   APPETIZER: "🍢",
   SALAD: "🥗",
   DRINK: "🥤",
+  SERVICE: "🛎️",
 };
 
 // Порядок отображения категорий
@@ -33,6 +35,7 @@ export const CATEGORY_ORDER: Category[] = [
   Category.APPETIZER,
   Category.SALAD,
   Category.DRINK,
+  Category.SERVICE,
 ];
 
 export const STATUS_LABELS: Record<string, string> = {

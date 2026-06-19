@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Category } from "@prisma/client";
 import { CATEGORY_LABELS, CATEGORY_ORDER, CATEGORY_ICONS } from "@/lib/constants";
 import { formatDate, formatKopecks } from "@/lib/format";
+import { computeCost } from "@/lib/cost";
 import { StatusBadge, Spinner } from "@/components/ui";
 
 type Dish = {
@@ -14,6 +15,9 @@ type Dish = {
   category: Category;
   pricePerGuest: number;
   imageUrl: string | null;
+  mandatory: boolean;
+  perEvent: boolean;
+  informational: boolean;
 };
 
 type EventData = {
@@ -36,8 +40,14 @@ export function MenuSelector({
   event: EventData;
   dishes: Dish[];
 }) {
+  // id обязательных позиций (например, обслуживание) — всегда включены
+  const mandatoryIds = useMemo(
+    () => dishes.filter((d) => d.mandatory).map((d) => d.id),
+    [dishes]
+  );
+
   const [selected, setSelected] = useState<Set<string>>(
-    () => new Set(event.selectedDishIds)
+    () => new Set([...event.selectedDishIds, ...dishes.filter((d) => d.mandatory).map((d) => d.id)])
   );
   const [guests, setGuests] = useState(event.guests);
   const [status, setStatus] = useState(event.status);
@@ -45,17 +55,34 @@ export function MenuSelector({
   const [confirming, setConfirming] = useState(false);
   // Блюдо, фото которого открыто в увеличенном виде (lightbox)
   const [zoomed, setZoomed] = useState<Dish | null>(null);
+  // Информационные позиции (оформление зала), явно отмеченные «Не нужно».
+  // Хранится только в интерфейсе: для зала важен факт «Нужно» (он в selected),
+  // «Не нужно» — это просто явный ответ, чтобы кнопка подсветилась.
+  const [declined, setDeclined] = useState<Set<string>>(new Set());
+
+  function setInfoChoice(id: string, want: boolean) {
+    if (locked) return;
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (want) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+    setDeclined((prev) => {
+      const next = new Set(prev);
+      if (want) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   const locked = status === "CONFIRMED";
 
   // --- Расчёт стоимости (мгновенно на клиенте) ---
-  const perGuest = useMemo(() => {
-    let sum = 0;
-    for (const d of dishes) if (selected.has(d.id)) sum += d.pricePerGuest;
-    return sum;
-  }, [dishes, selected]);
-
-  const total = perGuest * guests;
+  const { perGuest, eventFees, total } = useMemo(() => {
+    const items = dishes.filter((d) => selected.has(d.id));
+    return computeCost(items, guests);
+  }, [dishes, selected, guests]);
 
   // --- Сохранение на сервер с debounce ---
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -103,6 +130,8 @@ export function MenuSelector({
 
   function toggle(id: string) {
     if (locked) return;
+    // Обязательные позиции снять нельзя
+    if (mandatoryIds.includes(id)) return;
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -230,12 +259,71 @@ export function MenuSelector({
               <div className="grid gap-3 sm:grid-cols-2">
                 {group.dishes.map((d) => {
                   const isSel = selected.has(d.id);
+                  const isMandatory = d.mandatory;
+
+                  // Информационная позиция (оформление зала): две кнопки
+                  // «Нужно / Не нужно», в стоимость не входит.
+                  if (d.informational) {
+                    const wants = isSel;
+                    const declinedIt = declined.has(d.id);
+                    return (
+                      <div
+                        key={d.id}
+                        className="rounded-2xl border border-stone-200 bg-white p-3 sm:p-4 sm:col-span-2"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="font-medium text-stone-900">{d.name}</p>
+                            {d.description && (
+                              <p className="text-sm text-stone-500 mt-0.5">
+                                {d.description}
+                              </p>
+                            )}
+                          </div>
+                          <span className="text-sm text-stone-500 whitespace-nowrap">
+                            от {formatKopecks(d.pricePerGuest)}
+                          </span>
+                        </div>
+                        <div className="mt-3 flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setInfoChoice(d.id, true)}
+                            disabled={locked}
+                            className={`flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-colors disabled:opacity-60 ${
+                              wants
+                                ? "border-brand-500 bg-brand-500 text-white"
+                                : "border-stone-300 bg-white text-stone-700 hover:bg-stone-50"
+                            }`}
+                          >
+                            Нужно
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setInfoChoice(d.id, false)}
+                            disabled={locked}
+                            className={`flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-colors disabled:opacity-60 ${
+                              declinedIt
+                                ? "border-stone-400 bg-stone-700 text-white"
+                                : "border-stone-300 bg-white text-stone-700 hover:bg-stone-50"
+                            }`}
+                          >
+                            Не нужно
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Обычное блюдо / услуга с галочкой.
+                  // Обязательную позицию нельзя ни снять, ни «нажать»
+                  const interactive = !locked && !isMandatory;
                   return (
                     <div
                       key={d.id}
                       role="checkbox"
                       aria-checked={isSel}
-                      tabIndex={locked ? -1 : 0}
+                      aria-disabled={!interactive}
+                      tabIndex={interactive ? 0 : -1}
                       onClick={() => toggle(d.id)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
@@ -247,7 +335,7 @@ export function MenuSelector({
                         isSel
                           ? "border-brand-500 ring-1 ring-brand-500 shadow-sm"
                           : "border-stone-200 hover:border-stone-300"
-                      } ${locked ? "cursor-default opacity-90" : "cursor-pointer"}`}
+                      } ${interactive ? "cursor-pointer" : "cursor-default opacity-95"}`}
                     >
                       <div className="flex items-start gap-3">
                         <span
@@ -297,9 +385,19 @@ export function MenuSelector({
                           <div className="flex items-baseline justify-between gap-2">
                             <p className="font-medium text-stone-900">
                               {d.name}
+                              {isMandatory && (
+                                <span className="ml-2 align-middle rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700">
+                                  включено
+                                </span>
+                              )}
                             </p>
                             <span className="text-sm font-semibold text-stone-900 whitespace-nowrap">
                               {formatKopecks(d.pricePerGuest)}
+                              {d.perEvent && (
+                                <span className="ml-1 font-normal text-stone-400">
+                                  / за зал
+                                </span>
+                              )}
                             </span>
                           </div>
                           {d.description && (
@@ -323,6 +421,7 @@ export function MenuSelector({
             <Summary
               guests={guests}
               perGuest={perGuest}
+              eventFees={eventFees}
               total={total}
               selectedCount={selected.size}
               locked={locked}
@@ -343,6 +442,7 @@ export function MenuSelector({
             compact
             guests={guests}
             perGuest={perGuest}
+            eventFees={eventFees}
             total={total}
             selectedCount={selected.size}
             locked={locked}
@@ -397,6 +497,7 @@ export function MenuSelector({
 function Summary({
   guests,
   perGuest,
+  eventFees,
   total,
   selectedCount,
   locked,
@@ -409,6 +510,7 @@ function Summary({
 }: {
   guests: number;
   perGuest: number;
+  eventFees: number;
   total: number;
   selectedCount: number;
   locked: boolean;
@@ -462,9 +564,12 @@ function Summary({
 
       {!compact && (
         <div className="space-y-2 border-t border-stone-200 pt-4">
-          <Row label="Блюд выбрано" value={String(selectedCount)} />
+          <Row label="Позиций выбрано" value={String(selectedCount)} />
           <Row label="Стоимость на гостя" value={formatKopecks(perGuest)} />
-          <Row label="Гостей" value={`× ${guests}`} />
+          <Row label={`На гостях (× ${guests})`} value={formatKopecks(perGuest * guests)} />
+          {eventFees > 0 && (
+            <Row label="Услуги за зал" value={formatKopecks(eventFees)} />
+          )}
         </div>
       )}
 

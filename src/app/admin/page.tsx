@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatDate, formatKopecks } from "@/lib/format";
+import { computeCost } from "@/lib/cost";
 import { StatusBadge } from "@/components/ui";
 import { CreateEventButton } from "./CreateEventButton";
 
@@ -12,8 +13,11 @@ async function getEvents() {
     include: { dishes: { include: { dish: true } } },
   });
   return events.map((e) => {
-    const perGuest = e.dishes.reduce((s, ed) => s + ed.dish.pricePerGuest, 0);
-    return { ...e, perGuest, total: perGuest * e.guests };
+    const cost = computeCost(
+      e.dishes.map((ed) => ed.dish),
+      e.guests
+    );
+    return { ...e, perGuest: cost.perGuest, total: cost.total };
   });
 }
 

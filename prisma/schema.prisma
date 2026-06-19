@@ -16,6 +16,7 @@ enum Category {
   APPETIZER      // Закуски
   SALAD          // Салаты
   DRINK          // Напитки
+  SERVICE        // Дополнительные услуги
 }
 
 enum EventStatus {
@@ -40,6 +41,16 @@ model Dish {
   pricePerGuest Int
   imageUrl    String?
   active      Boolean  @default(true)
+  // Обязательная позиция (например, обслуживание): всегда включена,
+  // клиент не может её снять.
+  mandatory   Boolean  @default(false)
+  // Фиксированная стоимость за всё мероприятие (а не за гостя).
+  // Используется для услуг с фиксом за зал: цена НЕ умножается на гостей.
+  perEvent    Boolean  @default(false)
+  // Информационная позиция (например, оформление зала): клиент может
+  // отметить «нужно / не нужно», но цена в итоговую стоимость НЕ входит.
+  // pricePerGuest здесь — справочная «от …».
+  informational Boolean @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

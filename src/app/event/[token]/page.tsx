@@ -24,6 +24,9 @@ export default async function EventPage({
       category: true,
       pricePerGuest: true,
       imageUrl: true,
+      mandatory: true,
+      perEvent: true,
+      informational: true,
     },
   });
 

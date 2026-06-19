@@ -10,6 +10,9 @@ const MENU: {
   description: string | null;
   category: Category;
   price: number;
+  mandatory?: boolean;
+  perEvent?: boolean;
+  informational?: boolean;
 }[] = [
   // --- Первые блюда ---
   { name: "Бишбармак", description: null, category: Category.FIRST_COURSE, price: 290 },
@@ -92,6 +95,15 @@ const MENU: {
   { name: "Хлеб", description: null, category: Category.DRINK, price: 30 },
   { name: "Компот", description: null, category: Category.DRINK, price: 100 },
   { name: "Чай", description: null, category: Category.DRINK, price: 50 },
+
+  // --- Дополнительные услуги ---
+  // Обслуживание включено всегда (mandatory) и не снимается клиентом.
+  { name: "Обслуживание", description: "Включается автоматически для каждого гостя", category: Category.SERVICE, price: 250, mandatory: true },
+  { name: "Накидки для стульев", description: "Декоративные чехлы на стулья", category: Category.SERVICE, price: 25 },
+  // Оформление зала — только отметка «нужно / не нужно». В итог НЕ входит:
+  // цена справочная «от …», точную стоимость клиент согласует с залом.
+  { name: "Оформление зала на свадьбу", description: "от 6000 ₽. Стоимость уточняется отдельно с банкетным залом.", category: Category.SERVICE, price: 6000, informational: true },
+  { name: "Оформление зала на юбилей", description: "от 3000 ₽. Стоимость уточняется отдельно с банкетным залом.", category: Category.SERVICE, price: 3000, informational: true },
 ];
 
 async function main() {
@@ -118,6 +130,9 @@ async function main() {
       category: d.category,
       pricePerGuest: d.price * 100,
       active: true,
+      mandatory: d.mandatory ?? false,
+      perEvent: d.perEvent ?? false,
+      informational: d.informational ?? false,
     })),
   });
   console.log(`Seeded ${MENU.length} dishes.`);

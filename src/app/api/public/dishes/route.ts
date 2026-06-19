@@ -13,6 +13,9 @@ export async function GET() {
       category: true,
       pricePerGuest: true,
       imageUrl: true,
+      mandatory: true,
+      perEvent: true,
+      informational: true,
     },
   });
   return NextResponse.json(dishes);

@@ -8,3 +8,7 @@ node_modules
 
 # Загруженные фото блюд (пользовательский контент, не в git)
 /uploads/
+
+# TypeScript incremental build cache
+tsconfig.tsbuildinfo
+*.tsbuildinfo

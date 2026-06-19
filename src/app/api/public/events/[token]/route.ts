@@ -71,7 +71,17 @@ export async function PATCH(
       where: { id: { in: ids }, active: true },
       select: { id: true },
     });
-    const validIds = valid.map((d) => d.id);
+
+    // Обязательные позиции (например, обслуживание) включаются всегда,
+    // даже если клиент их не прислал — снять их нельзя.
+    const mandatory = await prisma.dish.findMany({
+      where: { active: true, mandatory: true },
+      select: { id: true },
+    });
+
+    const validIds = Array.from(
+      new Set([...valid.map((d) => d.id), ...mandatory.map((d) => d.id)])
+    );
 
     await prisma.$transaction([
       prisma.eventDish.deleteMany({ where: { eventId: event.id } }),
