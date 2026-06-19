@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Category {
+  FIRST_COURSE   // Первые блюда
+  SIDE_DISH      // Гарниры
+  FISH           // Рыбные блюда
+  MEAT           // Мясные блюда
+  COLD_APPETIZER // Холодные закуски
+  APPETIZER      // Закуски
+  SALAD          // Салаты
+  DRINK          // Напитки
+}
+
+enum EventStatus {
+  DRAFT
+  CONFIRMED
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+}
+
+model Dish {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    Category
+  // Цена за одного гостя, в копейках/центах для избежания ошибок с плавающей точкой
+  pricePerGuest Int
+  imageUrl    String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  eventDishes EventDish[]
+}
+
+model Event {
+  id        String      @id @default(cuid())
+  token     String      @unique @default(cuid())
+  title     String
+  clientName String
+  eventDate DateTime
+  guests    Int
+  status    EventStatus @default(DRAFT)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  dishes    EventDish[]
+}
+
+// Связь выбранных клиентом блюд с мероприятием
+model EventDish {
+  id      String @id @default(cuid())
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId String
+  dish    Dish   @relation(fields: [dishId], references: [id], onDelete: Cascade)
+  dishId  String
+
+  @@unique([eventId, dishId])
+}

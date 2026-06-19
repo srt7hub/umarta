@@ -1,0 +1,37 @@
+// Цены хранятся в копейках. Утилиты конвертации и форматирования.
+
+export function kopecksToRubles(kopecks: number): number {
+  return kopecks / 100;
+}
+
+export function rublesToKopecks(rubles: number): number {
+  return Math.round(rubles * 100);
+}
+
+const rubFormatter = new Intl.NumberFormat("ru-RU", {
+  style: "currency",
+  currency: "RUB",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+
+// Принимает значение в копейках, возвращает строку вида "1 234 ₽"
+export function formatKopecks(kopecks: number): string {
+  return rubFormatter.format(kopecks / 100);
+}
+
+const dateFormatter = new Intl.DateTimeFormat("ru-RU", {
+  day: "2-digit",
+  month: "long",
+  year: "numeric",
+});
+
+export function formatDate(date: Date | string): string {
+  return dateFormatter.format(new Date(date));
+}
+
+// Для input type="date"
+export function toDateInputValue(date: Date | string): string {
+  const d = new Date(date);
+  return d.toISOString().slice(0, 10);
+}
