@@ -23,3 +23,18 @@ input[type="number"]::-webkit-inner-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
 }
+
+/* Печать: белый фон, точные цвета, поля страницы */
+@media print {
+  body {
+    background: #fff !important;
+  }
+  @page {
+    margin: 14mm;
+  }
+  /* Сохранять акцентные цвета (янтарь итога) при печати */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

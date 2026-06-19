@@ -73,7 +73,16 @@ export default async function AdminEventDetail({
             {event.guests} гостей
           </p>
         </div>
-        <DeleteEventButton id={event.id} title={event.title} />
+        <div className="flex items-center gap-2">
+          <a
+            href={`/event/${event.token}/print`}
+            target="_blank"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-50"
+          >
+            🖨 Распечатать смету
+          </a>
+          <DeleteEventButton id={event.id} title={event.title} />
+        </div>
       </div>
 
       <EventLink token={event.token} />

@@ -248,7 +248,15 @@ export function MenuSelector({
                 {event.clientName} · {formatDate(event.eventDate)}
               </p>
             </div>
-            <StatusBadge status={status} />
+            <div className="flex items-center gap-3">
+              <a
+                href={`/event/${token}/print`}
+                className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-50"
+              >
+                🖨 Смета
+              </a>
+              <StatusBadge status={status} />
+            </div>
           </div>
         </div>
       </header>
