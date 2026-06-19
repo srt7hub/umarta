@@ -69,6 +69,21 @@ model Event {
   updatedAt DateTime    @updatedAt
 
   dishes    EventDish[]
+  items     EventItem[]
+}
+
+// Произвольная позиция сметы конкретного мероприятия (доп. услуга, аренда,
+// скидка и т.п.), добавляется менеджером вручную. В каталоге блюд не хранится.
+model EventItem {
+  id        String   @id @default(cuid())
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId   String
+  name      String
+  // Сумма в копейках. perGuest=true → за одного гостя (× число гостей),
+  // perGuest=false → фиксированная за всё мероприятие.
+  amount    Int
+  perGuest  Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
 
 // Связь выбранных клиентом блюд с мероприятием

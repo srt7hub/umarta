@@ -20,6 +20,13 @@ type Dish = {
   informational: boolean;
 };
 
+type EventItem = {
+  id: string;
+  name: string;
+  amount: number; // копейки
+  perGuest: boolean;
+};
+
 type EventData = {
   title: string;
   clientName: string;
@@ -27,6 +34,7 @@ type EventData = {
   guests: number;
   status: string;
   selectedDishIds: string[];
+  items: EventItem[];
 };
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -78,11 +86,32 @@ export function MenuSelector({
 
   const locked = status === "CONFIRMED";
 
+  // Ручные позиции мероприятия (доп. услуги) — всегда в расчёте, клиент их
+  // не редактирует. perGuest=false (фикс) → perEvent=true.
+  const manualCostItems = useMemo(
+    () =>
+      event.items.map((it) => ({
+        pricePerGuest: it.amount,
+        perEvent: !it.perGuest,
+      })),
+    [event.items]
+  );
+
+  // Сумма доп. позиций для отдельной строки в сводке
+  const itemsTotal = useMemo(
+    () =>
+      event.items.reduce(
+        (s, it) => s + (it.perGuest ? it.amount * guests : it.amount),
+        0
+      ),
+    [event.items, guests]
+  );
+
   // --- Расчёт стоимости (мгновенно на клиенте) ---
   const { perGuest, eventFees, total } = useMemo(() => {
-    const items = dishes.filter((d) => selected.has(d.id));
-    return computeCost(items, guests);
-  }, [dishes, selected, guests]);
+    const selectedDishes = dishes.filter((d) => selected.has(d.id));
+    return computeCost([...selectedDishes, ...manualCostItems], guests);
+  }, [dishes, selected, guests, manualCostItems]);
 
   // --- Сохранение на сервер с debounce ---
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -422,6 +451,7 @@ export function MenuSelector({
               guests={guests}
               perGuest={perGuest}
               eventFees={eventFees}
+              itemsTotal={itemsTotal}
               total={total}
               selectedCount={selected.size}
               locked={locked}
@@ -443,6 +473,7 @@ export function MenuSelector({
             guests={guests}
             perGuest={perGuest}
             eventFees={eventFees}
+            itemsTotal={itemsTotal}
             total={total}
             selectedCount={selected.size}
             locked={locked}
@@ -498,6 +529,7 @@ function Summary({
   guests,
   perGuest,
   eventFees,
+  itemsTotal,
   total,
   selectedCount,
   locked,
@@ -511,6 +543,7 @@ function Summary({
   guests: number;
   perGuest: number;
   eventFees: number;
+  itemsTotal: number;
   total: number;
   selectedCount: number;
   locked: boolean;
@@ -569,6 +602,9 @@ function Summary({
           <Row label={`На гостях (× ${guests})`} value={formatKopecks(perGuest * guests)} />
           {eventFees > 0 && (
             <Row label="Услуги за зал" value={formatKopecks(eventFees)} />
+          )}
+          {itemsTotal > 0 && (
+            <Row label="Доп. услуги" value={formatKopecks(itemsTotal)} />
           )}
         </div>
       )}

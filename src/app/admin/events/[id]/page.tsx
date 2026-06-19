@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/ui";
 import { Category } from "@prisma/client";
 import { EventLink } from "./EventLink";
 import { DeleteEventButton } from "./DeleteEventButton";
+import { EventItems } from "./EventItems";
 
 export const dynamic = "force-dynamic";
 
@@ -19,13 +20,30 @@ export default async function AdminEventDetail({
   const { id } = await params;
   const event = await prisma.event.findUnique({
     where: { id },
-    include: { dishes: { include: { dish: true } } },
+    include: { dishes: { include: { dish: true } }, items: true },
   });
   if (!event) notFound();
 
   const selectedDishes = event.dishes.map((ed) => ed.dish);
-  const cost = computeCost(selectedDishes, event.guests);
+
+  // Ручные позиции мероприятия приводим к формату расчёта:
+  // perGuest=false (фикс) → perEvent=true (не зависит от числа гостей).
+  const manualCostItems = event.items.map((it) => ({
+    pricePerGuest: it.amount,
+    perEvent: !it.perGuest,
+  }));
+
+  const cost = computeCost(
+    [...selectedDishes, ...manualCostItems],
+    event.guests
+  );
   const { perGuest, eventFees, total } = cost;
+
+  // Вклад ручных позиций в итог (для отдельной строки в сводке)
+  const itemsTotal = event.items.reduce(
+    (s, it) => s + (it.perGuest ? it.amount * event.guests : it.amount),
+    0
+  );
 
   // Группировка выбранных блюд по категориям
   const byCategory = CATEGORY_ORDER.map((cat) => ({
@@ -99,6 +117,17 @@ export default async function AdminEventDetail({
               </div>
             ))
           )}
+
+          <EventItems
+            eventId={event.id}
+            items={event.items.map((it) => ({
+              id: it.id,
+              name: it.name,
+              amount: it.amount,
+              perGuest: it.perGuest,
+            }))}
+            guests={event.guests}
+          />
         </div>
 
         <aside className="lg:col-span-1">
@@ -118,6 +147,12 @@ export default async function AdminEventDetail({
               <Row
                 label="Услуги за мероприятие"
                 value={formatKopecks(eventFees)}
+              />
+            )}
+            {itemsTotal > 0 && (
+              <Row
+                label="Доп. позиции"
+                value={formatKopecks(itemsTotal)}
               />
             )}
             <div className="border-t border-stone-200 pt-4 flex items-center justify-between">

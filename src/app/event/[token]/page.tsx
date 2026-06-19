@@ -40,6 +40,7 @@ export default async function EventPage({
         guests: event.guests,
         status: event.status,
         selectedDishIds: event.selectedDishIds,
+        items: event.items,
       }}
       dishes={dishes}
     />
