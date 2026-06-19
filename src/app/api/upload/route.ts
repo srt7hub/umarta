@@ -40,10 +40,13 @@ export async function POST(req: NextRequest) {
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const fileName = `${randomUUID()}.${EXT[file.type]}`;
-  const uploadDir = path.join(process.cwd(), "public", "uploads");
+  // Храним вне public/, т.к. в продакшене (next start) public раздаётся по
+  // снапшоту на момент старта и новые файлы туда не попадают. Отдаём их
+  // через рантайм-роут /api/uploads/<name>, который читает диск напрямую.
+  const uploadDir = path.join(process.cwd(), "uploads");
 
   await mkdir(uploadDir, { recursive: true });
   await writeFile(path.join(uploadDir, fileName), buffer);
 
-  return NextResponse.json({ url: `/uploads/${fileName}` }, { status: 201 });
+  return NextResponse.json({ url: `/api/uploads/${fileName}` }, { status: 201 });
 }

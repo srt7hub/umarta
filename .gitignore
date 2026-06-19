@@ -7,5 +7,4 @@ node_modules
 /prisma/dev.db
 
 # Загруженные фото блюд (пользовательский контент, не в git)
-/public/uploads/*
-!/public/uploads/.gitkeep
+/uploads/

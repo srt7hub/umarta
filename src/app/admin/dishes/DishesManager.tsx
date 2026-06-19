@@ -289,6 +289,7 @@ export function DishesManager({ initialDishes }: { initialDishes: Dish[] }) {
                         alt="Превью"
                         fill
                         sizes="80px"
+                        unoptimized
                         className="object-cover"
                       />
                     </div>
