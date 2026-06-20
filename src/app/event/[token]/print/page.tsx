@@ -18,22 +18,23 @@ export default async function EventPrintPage({
   const event = await getEventByToken(token);
   if (!event) notFound();
 
-  const confirmed = event.status === "CONFIRMED";
-
-  // Выбранные блюда с ценами. У подтверждённого мероприятия берём снимок
-  // (EventDish.priceAtConfirm), иначе живые цены из каталога.
+  // Выбранные блюда с ценами. При наличии снимка (подтверждённое мероприятие)
+  // берём зафиксированные цены, иначе живые из каталога.
   const eventDishes = await prisma.eventDish.findMany({
     where: { eventId: event.id },
     include: { dish: true },
   });
+  const hasSnapshot =
+    event.status === "CONFIRMED" &&
+    eventDishes.some((ed) => ed.priceAtConfirm != null);
   const dishes = eventDishes.map((ed) => ({
     id: ed.dish.id,
     name: ed.dish.name,
     description: ed.dish.description,
     category: ed.dish.category,
-    pricePerGuest: confirmed ? ed.priceAtConfirm ?? 0 : ed.dish.pricePerGuest,
-    perEvent: confirmed ? ed.perEventAtConfirm ?? false : ed.dish.perEvent,
-    informational: confirmed
+    pricePerGuest: hasSnapshot ? ed.priceAtConfirm ?? 0 : ed.dish.pricePerGuest,
+    perEvent: hasSnapshot ? ed.perEventAtConfirm ?? false : ed.dish.perEvent,
+    informational: hasSnapshot
       ? ed.informationalAtConfirm ?? false
       : ed.dish.informational,
   }));

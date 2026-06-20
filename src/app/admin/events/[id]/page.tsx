@@ -25,25 +25,29 @@ export default async function AdminEventDetail({
   if (!event) notFound();
 
   const confirmed = event.status === "CONFIRMED";
-  const guests = confirmed ? event.guestsAtConfirm ?? event.guests : event.guests;
+  // Снимок валиден, только если у блюд реально записаны цены (старые события,
+  // подтверждённые до внедрения снимка, его не имеют → показываем живые цены).
+  const hasSnapshot =
+    confirmed && event.dishes.some((ed) => ed.priceAtConfirm != null);
+  const guests = hasSnapshot ? event.guestsAtConfirm ?? event.guests : event.guests;
 
   // Итоги берём из единого источника истины (учитывает снимок цен у
   // подтверждённых мероприятий), а не пересчитываем из живого каталога.
   const summary = await getEventByToken(event.token);
   const { perGuest, eventFees, total } = summary!;
 
-  // Цена блюда для отображения: у подтверждённого — зафиксированная, иначе из каталога.
+  // Цена блюда для отображения: при наличии снимка — зафиксированная, иначе из каталога.
   const dishRows = event.dishes.map((ed) => ({
     id: ed.dish.id,
     name: ed.dish.name,
     description: ed.dish.description,
     category: ed.dish.category,
-    price: confirmed ? ed.priceAtConfirm ?? 0 : ed.dish.pricePerGuest,
+    price: hasSnapshot ? ed.priceAtConfirm ?? 0 : ed.dish.pricePerGuest,
   }));
 
   // Вклад ручных позиций в итог (для отдельной строки в сводке)
   const itemsTotal = event.items.reduce((s, it) => {
-    const amount = confirmed ? it.amountAtConfirm ?? it.amount : it.amount;
+    const amount = hasSnapshot ? it.amountAtConfirm ?? it.amount : it.amount;
     return s + (it.perGuest ? amount * guests : amount);
   }, 0);
 
@@ -145,7 +149,7 @@ export default async function AdminEventDetail({
         <aside className="lg:col-span-1">
           <div className="sticky top-24 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm space-y-4">
             <h3 className="font-semibold text-stone-900">Итог</h3>
-            {confirmed && (
+            {hasSnapshot && (
               <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
                 Цены зафиксированы при подтверждении
                 {summary!.confirmedAt

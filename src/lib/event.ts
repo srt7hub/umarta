@@ -19,17 +19,23 @@ export async function getEventByToken(token: string) {
     ? event.guestsAtConfirm ?? event.guests
     : event.guests;
 
+  // Снимок считается валидным, только если у блюд реально записаны цены.
+  // События, подтверждённые до внедрения снимка (priceAtConfirm = null),
+  // не имеют его — для них откатываемся на живые цены каталога.
+  const hasSnapshot =
+    confirmed && event.dishes.some((ed) => ed.priceAtConfirm != null);
+
   let dishItems: { pricePerGuest: number; perEvent: boolean; informational: boolean }[];
 
-  if (confirmed) {
-    // Подтверждено → считаем из снимка цен, каталог игнорируем.
+  if (hasSnapshot) {
+    // Считаем из снимка цен, каталог игнорируем.
     dishItems = event.dishes.map((ed) => ({
       pricePerGuest: ed.priceAtConfirm ?? 0,
       perEvent: ed.perEventAtConfirm ?? false,
       informational: ed.informationalAtConfirm ?? false,
     }));
   } else {
-    // Черновик → живые цены из каталога.
+    // Черновик или старое подтверждение без снимка → живые цены из каталога.
     dishItems = selectedDishIds.length
       ? await prisma.dish.findMany({
           where: { id: { in: selectedDishIds } },
@@ -38,10 +44,10 @@ export async function getEventByToken(token: string) {
       : [];
   }
 
-  // Ручные позиции: у подтверждённого — снимок суммы, иначе живая.
+  // Ручные позиции: при наличии снимка — зафиксированная сумма, иначе живая.
   // perGuest=false (фикс) → perEvent=true, не зависит от числа гостей.
   const manualItems = event.items.map((it) => ({
-    pricePerGuest: confirmed ? it.amountAtConfirm ?? it.amount : it.amount,
+    pricePerGuest: hasSnapshot ? it.amountAtConfirm ?? it.amount : it.amount,
     perEvent: !it.perGuest,
   }));
 
@@ -60,7 +66,7 @@ export async function getEventByToken(token: string) {
     items: event.items.map((it) => ({
       id: it.id,
       name: it.name,
-      amount: confirmed ? it.amountAtConfirm ?? it.amount : it.amount,
+      amount: hasSnapshot ? it.amountAtConfirm ?? it.amount : it.amount,
       perGuest: it.perGuest,
     })),
     perGuest: cost.perGuest,
