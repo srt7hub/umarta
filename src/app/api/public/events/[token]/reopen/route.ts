@@ -20,10 +20,25 @@ export async function POST(
     return NextResponse.json(current);
   }
 
-  await prisma.event.update({
-    where: { id: event.id },
-    data: { status: "DRAFT" },
-  });
+  // Возврат в редактирование: сбрасываем снимок цен — цены снова живые.
+  await prisma.$transaction([
+    prisma.eventDish.updateMany({
+      where: { eventId: event.id },
+      data: {
+        priceAtConfirm: null,
+        perEventAtConfirm: null,
+        informationalAtConfirm: null,
+      },
+    }),
+    prisma.eventItem.updateMany({
+      where: { eventId: event.id },
+      data: { amountAtConfirm: null },
+    }),
+    prisma.event.update({
+      where: { id: event.id },
+      data: { status: "DRAFT", confirmedAt: null, guestsAtConfirm: null },
+    }),
+  ]);
 
   const updated = await getEventByToken(token);
   return NextResponse.json(updated);

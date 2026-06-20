@@ -11,23 +11,41 @@ export async function getEventByToken(token: string) {
   if (!event) return null;
 
   const selectedDishIds = event.dishes.map((d) => d.dishId);
+  const confirmed = event.status === "CONFIRMED";
 
-  // Тянем цену и признак perEvent выбранных блюд
-  const dishItems = selectedDishIds.length
-    ? await prisma.dish.findMany({
-        where: { id: { in: selectedDishIds } },
-        select: { pricePerGuest: true, perEvent: true, informational: true },
-      })
-    : [];
+  // Число гостей: у подтверждённого берём зафиксированное (на случай, если
+  // кто-то поменяет event.guests после подтверждения).
+  const guests = confirmed
+    ? event.guestsAtConfirm ?? event.guests
+    : event.guests;
 
-  // Ручные позиции мероприятия приводим к формату расчёта.
+  let dishItems: { pricePerGuest: number; perEvent: boolean; informational: boolean }[];
+
+  if (confirmed) {
+    // Подтверждено → считаем из снимка цен, каталог игнорируем.
+    dishItems = event.dishes.map((ed) => ({
+      pricePerGuest: ed.priceAtConfirm ?? 0,
+      perEvent: ed.perEventAtConfirm ?? false,
+      informational: ed.informationalAtConfirm ?? false,
+    }));
+  } else {
+    // Черновик → живые цены из каталога.
+    dishItems = selectedDishIds.length
+      ? await prisma.dish.findMany({
+          where: { id: { in: selectedDishIds } },
+          select: { pricePerGuest: true, perEvent: true, informational: true },
+        })
+      : [];
+  }
+
+  // Ручные позиции: у подтверждённого — снимок суммы, иначе живая.
   // perGuest=false (фикс) → perEvent=true, не зависит от числа гостей.
   const manualItems = event.items.map((it) => ({
-    pricePerGuest: it.amount,
+    pricePerGuest: confirmed ? it.amountAtConfirm ?? it.amount : it.amount,
     perEvent: !it.perGuest,
   }));
 
-  const cost = computeCost([...dishItems, ...manualItems], event.guests);
+  const cost = computeCost([...dishItems, ...manualItems], guests);
 
   return {
     id: event.id,
@@ -35,13 +53,14 @@ export async function getEventByToken(token: string) {
     title: event.title,
     clientName: event.clientName,
     eventDate: event.eventDate,
-    guests: event.guests,
+    guests,
     status: event.status,
+    confirmedAt: event.confirmedAt,
     selectedDishIds,
     items: event.items.map((it) => ({
       id: it.id,
       name: it.name,
-      amount: it.amount,
+      amount: confirmed ? it.amountAtConfirm ?? it.amount : it.amount,
       perGuest: it.perGuest,
     })),
     perGuest: cost.perGuest,

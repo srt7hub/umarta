@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { CATEGORY_LABELS, CATEGORY_ORDER } from "@/lib/constants";
 import { formatDate, formatKopecks } from "@/lib/format";
-import { computeCost } from "@/lib/cost";
+import { getEventByToken } from "@/lib/event";
 import { StatusBadge } from "@/components/ui";
 import { Category } from "@prisma/client";
 import { EventLink } from "./EventLink";
@@ -24,31 +24,33 @@ export default async function AdminEventDetail({
   });
   if (!event) notFound();
 
-  const selectedDishes = event.dishes.map((ed) => ed.dish);
+  const confirmed = event.status === "CONFIRMED";
+  const guests = confirmed ? event.guestsAtConfirm ?? event.guests : event.guests;
 
-  // Ручные позиции мероприятия приводим к формату расчёта:
-  // perGuest=false (фикс) → perEvent=true (не зависит от числа гостей).
-  const manualCostItems = event.items.map((it) => ({
-    pricePerGuest: it.amount,
-    perEvent: !it.perGuest,
+  // Итоги берём из единого источника истины (учитывает снимок цен у
+  // подтверждённых мероприятий), а не пересчитываем из живого каталога.
+  const summary = await getEventByToken(event.token);
+  const { perGuest, eventFees, total } = summary!;
+
+  // Цена блюда для отображения: у подтверждённого — зафиксированная, иначе из каталога.
+  const dishRows = event.dishes.map((ed) => ({
+    id: ed.dish.id,
+    name: ed.dish.name,
+    description: ed.dish.description,
+    category: ed.dish.category,
+    price: confirmed ? ed.priceAtConfirm ?? 0 : ed.dish.pricePerGuest,
   }));
 
-  const cost = computeCost(
-    [...selectedDishes, ...manualCostItems],
-    event.guests
-  );
-  const { perGuest, eventFees, total } = cost;
-
   // Вклад ручных позиций в итог (для отдельной строки в сводке)
-  const itemsTotal = event.items.reduce(
-    (s, it) => s + (it.perGuest ? it.amount * event.guests : it.amount),
-    0
-  );
+  const itemsTotal = event.items.reduce((s, it) => {
+    const amount = confirmed ? it.amountAtConfirm ?? it.amount : it.amount;
+    return s + (it.perGuest ? amount * guests : amount);
+  }, 0);
 
   // Группировка выбранных блюд по категориям
   const byCategory = CATEGORY_ORDER.map((cat) => ({
     category: cat as Category,
-    dishes: selectedDishes.filter((d) => d.category === cat),
+    dishes: dishRows.filter((d) => d.category === cat),
   })).filter((g) => g.dishes.length > 0);
 
   return (
@@ -93,7 +95,7 @@ export default async function AdminEventDetail({
             Выбранное клиентом меню
           </h2>
 
-          {selectedDishes.length === 0 ? (
+          {dishRows.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-stone-300 bg-white p-8 text-center text-stone-500">
               Клиент ещё не выбрал блюда.
             </div>
@@ -118,7 +120,7 @@ export default async function AdminEventDetail({
                         )}
                       </div>
                       <span className="text-sm text-stone-600 whitespace-nowrap">
-                        {formatKopecks(d.pricePerGuest)} / гость
+                        {formatKopecks(d.price)} / гость
                       </span>
                     </div>
                   ))}
@@ -132,25 +134,35 @@ export default async function AdminEventDetail({
             items={event.items.map((it) => ({
               id: it.id,
               name: it.name,
-              amount: it.amount,
+              amount: confirmed ? it.amountAtConfirm ?? it.amount : it.amount,
               perGuest: it.perGuest,
             }))}
-            guests={event.guests}
+            guests={guests}
+            locked={confirmed}
           />
         </div>
 
         <aside className="lg:col-span-1">
           <div className="sticky top-24 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm space-y-4">
             <h3 className="font-semibold text-stone-900">Итог</h3>
-            <Row label="Блюд выбрано" value={String(selectedDishes.length)} />
-            <Row label="Гостей" value={String(event.guests)} />
+            {confirmed && (
+              <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                Цены зафиксированы при подтверждении
+                {summary!.confirmedAt
+                  ? ` ${formatDate(summary!.confirmedAt)}`
+                  : ""}
+                .
+              </p>
+            )}
+            <Row label="Блюд выбрано" value={String(dishRows.length)} />
+            <Row label="Гостей" value={String(guests)} />
             <Row
               label="Стоимость на гостя"
               value={formatKopecks(perGuest)}
             />
             <Row
-              label={`На гостях (× ${event.guests})`}
-              value={formatKopecks(perGuest * event.guests)}
+              label={`На гостях (× ${guests})`}
+              value={formatKopecks(perGuest * guests)}
             />
             {eventFees > 0 && (
               <Row

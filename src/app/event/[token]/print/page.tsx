@@ -18,21 +18,25 @@ export default async function EventPrintPage({
   const event = await getEventByToken(token);
   if (!event) notFound();
 
-  // Выбранные блюда с полями для печати
-  const dishes = event.selectedDishIds.length
-    ? await prisma.dish.findMany({
-        where: { id: { in: event.selectedDishIds } },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          category: true,
-          pricePerGuest: true,
-          perEvent: true,
-          informational: true,
-        },
-      })
-    : [];
+  const confirmed = event.status === "CONFIRMED";
+
+  // Выбранные блюда с ценами. У подтверждённого мероприятия берём снимок
+  // (EventDish.priceAtConfirm), иначе живые цены из каталога.
+  const eventDishes = await prisma.eventDish.findMany({
+    where: { eventId: event.id },
+    include: { dish: true },
+  });
+  const dishes = eventDishes.map((ed) => ({
+    id: ed.dish.id,
+    name: ed.dish.name,
+    description: ed.dish.description,
+    category: ed.dish.category,
+    pricePerGuest: confirmed ? ed.priceAtConfirm ?? 0 : ed.dish.pricePerGuest,
+    perEvent: confirmed ? ed.perEventAtConfirm ?? false : ed.dish.perEvent,
+    informational: confirmed
+      ? ed.informationalAtConfirm ?? false
+      : ed.dish.informational,
+  }));
 
   // Информационные позиции (отметка «нужно») показываем отдельно — без цены в итоге
   const priced = dishes.filter((d) => !d.informational);

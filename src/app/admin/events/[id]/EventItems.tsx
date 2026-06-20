@@ -16,10 +16,12 @@ export function EventItems({
   eventId,
   items,
   guests,
+  locked = false,
 }: {
   eventId: string;
   items: Item[];
   guests: number;
+  locked?: boolean;
 }) {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -75,7 +77,9 @@ export function EventItems({
         <span className="text-xs text-stone-400">входят в итог клиента</span>
       </div>
       <p className="text-sm text-stone-500 mb-4">
-        Услуги, аренда и прочее вручную. Клиент видит их в общей стоимости.
+        {locked
+          ? "Меню подтверждено — позиции зафиксированы. Чтобы изменить, верните меню в редактирование."
+          : "Услуги, аренда и прочее вручную. Клиент видит их в общей стоимости."}
       </p>
 
       {items.length > 0 && (
@@ -98,15 +102,17 @@ export function EventItems({
                   <span className="text-sm font-semibold text-stone-900">
                     {formatKopecks(lineTotal)}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => remove(it.id)}
-                    disabled={deletingId === it.id}
-                    className="text-stone-400 hover:text-red-500 disabled:opacity-50"
-                    aria-label={`Удалить позицию ${it.name}`}
-                  >
-                    {deletingId === it.id ? <Spinner /> : "×"}
-                  </button>
+                  {!locked && (
+                    <button
+                      type="button"
+                      onClick={() => remove(it.id)}
+                      disabled={deletingId === it.id}
+                      className="text-stone-400 hover:text-red-500 disabled:opacity-50"
+                      aria-label={`Удалить позицию ${it.name}`}
+                    >
+                      {deletingId === it.id ? <Spinner /> : "×"}
+                    </button>
+                  )}
                 </div>
               </li>
             );
@@ -114,6 +120,7 @@ export function EventItems({
         </ul>
       )}
 
+      {!locked && (
       <form onSubmit={add} className="space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-2">
           <input
@@ -168,6 +175,7 @@ export function EventItems({
           {loading && <Spinner />}+ Добавить позицию
         </button>
       </form>
+      )}
 
       <style jsx global>{`
         .ei-input {

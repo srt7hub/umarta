@@ -65,6 +65,10 @@ model Event {
   eventDate DateTime
   guests    Int
   status    EventStatus @default(DRAFT)
+  // Снимок на момент подтверждения: дата и число гостей фиксируются,
+  // чтобы итог подтверждённого меню не «поехал» при правках каталога/гостей.
+  confirmedAt     DateTime?
+  guestsAtConfirm Int?
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
@@ -83,6 +87,8 @@ model EventItem {
   // perGuest=false → фиксированная за всё мероприятие.
   amount    Int
   perGuest  Boolean  @default(false)
+  // Снимок суммы на момент подтверждения (null пока DRAFT).
+  amountAtConfirm Int?
   createdAt DateTime @default(now())
 }
 
@@ -93,6 +99,12 @@ model EventDish {
   eventId String
   dish    Dish   @relation(fields: [dishId], references: [id], onDelete: Cascade)
   dishId  String
+  // Снимок на момент подтверждения. null пока меню в DRAFT (цена живая из
+  // каталога). После подтверждения итог считается из этих полей, поэтому
+  // правки цен в каталоге не затрагивают подтверждённые мероприятия.
+  priceAtConfirm Int?
+  perEventAtConfirm     Boolean?
+  informationalAtConfirm Boolean?
 
   @@unique([eventId, dishId])
 }

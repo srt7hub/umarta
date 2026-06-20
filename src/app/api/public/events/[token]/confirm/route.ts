@@ -9,7 +9,10 @@ export async function POST(
 ) {
   const { token } = await params;
 
-  const event = await prisma.event.findUnique({ where: { token } });
+  const event = await prisma.event.findUnique({
+    where: { token },
+    include: { dishes: true, items: true },
+  });
   if (!event) {
     return NextResponse.json({ error: "Мероприятие не найдено" }, { status: 404 });
   }
@@ -20,10 +23,44 @@ export async function POST(
     );
   }
 
-  await prisma.event.update({
-    where: { id: event.id },
-    data: { status: "CONFIRMED" },
-  });
+  // Снимок цен на момент подтверждения: тянем актуальные значения из каталога
+  // и записываем в EventDish/EventItem, чтобы итог зафиксировался.
+  const dishIds = event.dishes.map((d) => d.dishId);
+  const catalog = dishIds.length
+    ? await prisma.dish.findMany({
+        where: { id: { in: dishIds } },
+        select: { id: true, pricePerGuest: true, perEvent: true, informational: true },
+      })
+    : [];
+  const byId = new Map(catalog.map((d) => [d.id, d]));
+
+  await prisma.$transaction([
+    ...event.dishes.map((ed) => {
+      const d = byId.get(ed.dishId);
+      return prisma.eventDish.update({
+        where: { id: ed.id },
+        data: {
+          priceAtConfirm: d?.pricePerGuest ?? 0,
+          perEventAtConfirm: d?.perEvent ?? false,
+          informationalAtConfirm: d?.informational ?? false,
+        },
+      });
+    }),
+    ...event.items.map((it) =>
+      prisma.eventItem.update({
+        where: { id: it.id },
+        data: { amountAtConfirm: it.amount },
+      })
+    ),
+    prisma.event.update({
+      where: { id: event.id },
+      data: {
+        status: "CONFIRMED",
+        confirmedAt: new Date(),
+        guestsAtConfirm: event.guests,
+      },
+    }),
+  ]);
 
   const updated = await getEventByToken(token);
   return NextResponse.json(updated);
