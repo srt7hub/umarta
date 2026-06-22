@@ -47,3 +47,14 @@ export function dayKeyToUtcDate(key: string): Date | null {
   const d = new Date(`${key}T00:00:00.000Z`);
   return Number.isNaN(d.getTime()) ? null : d;
 }
+
+// Публичный адрес сайта для ссылок клиентам. Берём из NEXT_PUBLIC_APP_URL
+// (задаётся в .env на сервере), иначе — текущий origin (для локальной
+// разработки). Так ссылка не зависит от того, откуда открыта админка.
+export function publicEventUrl(token: string): string {
+  const base = (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (typeof window !== "undefined" ? window.location.origin : "")
+  ).replace(/\/$/, "");
+  return `${base}/event/${token}`;
+}

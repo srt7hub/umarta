@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Spinner } from "@/components/ui";
+import { publicEventUrl } from "@/lib/format";
 
 export function CreateEventButton() {
   const router = useRouter();
@@ -42,7 +43,7 @@ export function CreateEventButton() {
       return;
     }
     const event = await res.json();
-    setCreatedLink(`${window.location.origin}/event/${event.token}`);
+    setCreatedLink(publicEventUrl(event.token));
     router.refresh();
   }
 

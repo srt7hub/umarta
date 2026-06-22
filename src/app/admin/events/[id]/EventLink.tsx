@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { publicEventUrl } from "@/lib/format";
 
 export function EventLink({ token }: { token: string }) {
   const [copied, setCopied] = useState(false);
-  const path = `/event/${token}`;
+  // Полный публичный адрес (с доменом/IP) — именно его копируем и показываем,
+  // чтобы ссылка работала у клиента в любом мессенджере.
+  const full = publicEventUrl(token);
 
   async function copy() {
-    const full = `${window.location.origin}${path}`;
     await navigator.clipboard.writeText(full);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -17,11 +19,11 @@ export function EventLink({ token }: { token: string }) {
     <div className="flex flex-wrap items-center gap-2 rounded-xl border border-stone-200 bg-white px-4 py-3">
       <span className="text-sm text-stone-500">Ссылка для клиента:</span>
       <a
-        href={path}
+        href={full}
         target="_blank"
-        className="text-sm font-medium text-brand-700 hover:text-brand-800 truncate"
+        className="min-w-0 flex-1 truncate text-sm font-medium text-brand-700 hover:text-brand-800"
       >
-        {path}
+        {full}
       </a>
       <button
         onClick={copy}
