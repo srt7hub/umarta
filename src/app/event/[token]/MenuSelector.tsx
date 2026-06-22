@@ -625,17 +625,17 @@ function Summary({
         }
       >
         {!compact && (
-          <span className="font-semibold text-stone-900">Итого</span>
+          <span className="font-semibold text-stone-900">На гостя</span>
         )}
         <div className={compact ? "" : "text-right"}>
-          {compact && (
-            <p className="text-xs text-stone-500">
-              {selectedCount} блюд · {formatKopecks(perGuest)}/гость
-            </p>
-          )}
+          {/* Крупно — цена на одного гостя (не пугает клиента), общая — мелко */}
           <span className="text-2xl font-semibold text-brand-700">
-            {formatKopecks(total)}
+            {formatKopecks(perGuest)}
+            <span className="text-sm font-normal text-stone-400"> / гость</span>
           </span>
+          <p className="text-xs text-stone-500">
+            {compact ? `${selectedCount} блюд · ` : ""}всего {formatKopecks(total)}
+          </p>
         </div>
       </div>
 
