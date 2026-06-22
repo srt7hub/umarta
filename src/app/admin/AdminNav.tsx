@@ -15,10 +15,10 @@ export function AdminNav({ userEmail }: { userEmail: string }) {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-10 border-b border-stone-200 bg-white/80 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b border-stone-200 bg-white/95 backdrop-blur">
       <div className="mx-auto max-w-6xl px-4">
-        <div className="flex h-16 items-center justify-between gap-4">
-          <div className="flex items-center gap-6">
+        <div className="flex h-16 items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-6">
             <Link href="/admin" className="flex items-center gap-2.5">
               <Image
                 src="/umarta.jpg"
@@ -41,7 +41,7 @@ export function AdminNav({ userEmail }: { userEmail: string }) {
                   <Link
                     key={l.href}
                     href={l.href}
-                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                    className={`rounded-lg px-2 sm:px-3 py-1.5 text-sm font-medium transition-colors ${
                       active
                         ? "bg-brand-50 text-brand-700"
                         : "text-stone-600 hover:bg-stone-100"

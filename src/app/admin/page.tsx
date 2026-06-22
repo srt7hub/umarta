@@ -45,7 +45,41 @@ export default async function AdminEventsPage() {
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+        <>
+        {/* Мобильные: карточки вместо таблицы */}
+        <div className="space-y-3 sm:hidden">
+          {events.map((e) => (
+            <div
+              key={e.id}
+              className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <Link
+                  href={`/admin/events/${e.id}`}
+                  className="font-medium text-stone-900 hover:text-brand-700"
+                >
+                  {e.title}
+                </Link>
+                <StatusBadge status={e.status} />
+              </div>
+              <p className="mt-1 text-sm text-stone-500">
+                {formatDate(e.eventDate)} · {e.guests} гостей
+              </p>
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <span className="font-semibold text-stone-900">
+                  {formatKopecks(e.total)}
+                </span>
+                <label className="flex items-center gap-2 text-sm text-stone-600">
+                  <DepositCheckbox eventId={e.id} initial={e.depositPaid} />
+                  Задаток
+                </label>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Десктоп/планшет: таблица */}
+        <div className="hidden overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm sm:block">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -94,6 +128,7 @@ export default async function AdminEventsPage() {
             </table>
           </div>
         </div>
+        </>
       )}
     </div>
   );

@@ -134,10 +134,10 @@ export function CalendarGrid({
   }
 
   return (
-    <div className="rounded-2xl border border-stone-200 bg-white p-4 sm:p-6 shadow-sm">
+    <div className="rounded-2xl border border-stone-200 bg-white p-3 sm:p-6 shadow-sm">
       {/* Шапка с навигацией по месяцам */}
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <button
             type="button"
             onClick={prevMonth}
@@ -146,7 +146,7 @@ export function CalendarGrid({
           >
             ←
           </button>
-          <h2 className="min-w-[160px] text-center text-lg font-semibold text-stone-900">
+          <h2 className="min-w-[120px] sm:min-w-[160px] text-center text-base sm:text-lg font-semibold text-stone-900">
             {MONTHS[month - 1]} {year}
           </h2>
           <button
@@ -161,7 +161,7 @@ export function CalendarGrid({
         <button
           type="button"
           onClick={goToday}
-          className="rounded-lg border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-50"
+          className="rounded-lg border border-stone-300 px-2.5 sm:px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-50"
         >
           Сегодня
         </button>
@@ -175,7 +175,7 @@ export function CalendarGrid({
       </div>
 
       {/* Дни недели */}
-      <div className="grid grid-cols-7 gap-1.5 mb-1.5">
+      <div className="grid grid-cols-7 gap-1 sm:gap-1.5 mb-1.5">
         {WEEKDAYS.map((w) => (
           <div key={w} className="text-center text-xs font-medium text-stone-400 py-1">
             {w}
@@ -190,7 +190,7 @@ export function CalendarGrid({
             <Spinner className="text-brand-600" />
           </div>
         )}
-        <div className="grid grid-cols-7 gap-1.5">
+        <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
           {cells.map((d, i) => {
             if (d === null) return <div key={`e${i}`} />;
             const key = dayKey(year, month, d);
@@ -207,7 +207,7 @@ export function CalendarGrid({
                 key={key}
                 type="button"
                 onClick={() => openDay(key)}
-                className={`relative min-h-[68px] rounded-xl p-1.5 text-left ring-1 transition-colors ${cls} ${
+                className={`relative flex min-h-[56px] sm:min-h-[68px] w-full flex-col overflow-hidden rounded-lg sm:rounded-xl p-1 sm:p-1.5 text-left ring-1 transition-colors ${cls} ${
                   dayEvents ? "cursor-default" : "cursor-pointer"
                 }`}
               >
@@ -219,27 +219,27 @@ export function CalendarGrid({
                   {d}
                 </span>
                 {dayEvents && (
-                  <div className="mt-1 space-y-0.5">
+                  <div className="mt-0.5 sm:mt-1 w-full space-y-0.5">
                     {dayEvents.slice(0, 2).map((e) => (
                       <Link
                         key={e.id}
                         href={`/admin/events/${e.id}`}
                         onClick={(ev) => ev.stopPropagation()}
-                        className="block truncate rounded bg-brand-600/90 px-1 py-0.5 text-[11px] text-white hover:bg-brand-700"
+                        className="block truncate rounded bg-brand-600/90 px-1 py-0.5 text-[10px] sm:text-[11px] leading-tight text-white hover:bg-brand-700"
                         title={e.title}
                       >
                         {e.title}
                       </Link>
                     ))}
                     {dayEvents.length > 2 && (
-                      <span className="block px-1 text-[11px] text-brand-700">
+                      <span className="block px-1 text-[10px] sm:text-[11px] text-brand-700">
                         +{dayEvents.length - 2}
                       </span>
                     )}
                   </div>
                 )}
                 {!dayEvents && block && (
-                  <div className="mt-1 truncate px-0.5 text-[11px] text-red-700">
+                  <div className="mt-0.5 sm:mt-1 w-full truncate px-0.5 text-[10px] sm:text-[11px] leading-tight text-red-700">
                     {block.note || "Закрыто"}
                   </div>
                 )}
