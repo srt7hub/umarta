@@ -563,13 +563,13 @@ function Summary({
   compact?: boolean;
 }) {
   return (
-    <div className={compact ? "flex items-center gap-4" : "space-y-5"}>
+    <div className={compact ? "flex items-center gap-3" : "space-y-5"}>
       {!compact && (
         <h3 className="font-semibold text-stone-900">Ваш банкет</h3>
       )}
 
       {/* Количество гостей */}
-      <div className={compact ? "" : ""}>
+      <div className={compact ? "flex-shrink-0" : ""}>
         {!compact && (
           <label className="block text-sm font-medium text-stone-700 mb-1.5">
             Количество гостей
@@ -617,27 +617,30 @@ function Summary({
         </div>
       )}
 
-      <div
-        className={
-          compact
-            ? "ml-auto text-right"
-            : "border-t border-stone-200 pt-4 flex items-center justify-between"
-        }
-      >
-        {!compact && (
-          <span className="font-semibold text-stone-900">На гостя</span>
-        )}
-        <div className={compact ? "" : "text-right"}>
-          {/* Крупно — цена на одного гостя (не пугает клиента), общая — мелко */}
-          <span className="text-2xl font-semibold text-brand-700">
+      {compact ? (
+        // Мобильная панель: цена на гостя крупно, общая — мелко, в одну колонку
+        <div className="min-w-0 flex-1 text-center leading-tight">
+          <p className="whitespace-nowrap text-xl font-semibold text-brand-700">
             {formatKopecks(perGuest)}
             <span className="text-sm font-normal text-stone-400"> / гость</span>
-          </span>
-          <p className="text-xs text-stone-500">
-            {compact ? `${selectedCount} блюд · ` : ""}всего {formatKopecks(total)}
+          </p>
+          <p className="whitespace-nowrap text-xs text-stone-500">
+            всего {formatKopecks(total)}
           </p>
         </div>
-      </div>
+      ) : (
+        <div className="border-t border-stone-200 pt-4 flex items-center justify-between">
+          <span className="font-semibold text-stone-900">На гостя</span>
+          <div className="text-right">
+            {/* Крупно — цена на одного гостя (не пугает клиента), общая — мелко */}
+            <span className="text-2xl font-semibold text-brand-700">
+              {formatKopecks(perGuest)}
+              <span className="text-sm font-normal text-stone-400"> / гость</span>
+            </span>
+            <p className="text-xs text-stone-500">всего {formatKopecks(total)}</p>
+          </div>
+        </div>
+      )}
 
       {!locked && (
         <>
@@ -645,12 +648,12 @@ function Summary({
           <button
             onClick={onConfirm}
             disabled={confirming || selectedCount === 0}
-            className={`inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 py-3 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50 transition-colors ${
-              compact ? "" : "w-full"
+            className={`inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50 transition-colors ${
+              compact ? "flex-shrink-0 whitespace-nowrap" : "w-full px-5"
             }`}
           >
             {confirming && <Spinner />}
-            Подтвердить меню
+            {compact ? "Подтвердить" : "Подтвердить меню"}
           </button>
         </>
       )}
