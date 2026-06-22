@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Spinner } from "@/components/ui";
 
 type BlockedDay = { day: string; note: string | null; createdBy: string | null };
@@ -27,6 +28,7 @@ export function CalendarGrid({
   initialYear: number;
   initialMonth: number;
 }) {
+  const router = useRouter();
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth); // 1..12
   const [blocked, setBlocked] = useState<Map<string, BlockedDay>>(new Map());
@@ -97,8 +99,18 @@ export function CalendarGrid({
   }, [year, month]);
 
   function openDay(key: string) {
-    // Дни с мероприятием не закрываем вручную — они заняты по факту.
-    if (events.has(key)) return;
+    const dayEvents = events.get(key);
+    if (dayEvents && dayEvents.length > 0) {
+      // Одно мероприятие — сразу проваливаемся на него.
+      if (dayEvents.length === 1) {
+        router.push(`/admin/events/${dayEvents[0].id}`);
+        return;
+      }
+      // Несколько — показываем список в попапе (выбрать, куда перейти).
+      setSelected(key);
+      return;
+    }
+    // Свободный/закрытый день — попап управления закрытием даты.
     setSelected(key);
     setNote(blocked.get(key)?.note ?? "");
   }
@@ -207,9 +219,7 @@ export function CalendarGrid({
                 key={key}
                 type="button"
                 onClick={() => openDay(key)}
-                className={`relative flex min-h-[56px] sm:min-h-[68px] w-full flex-col overflow-hidden rounded-lg sm:rounded-xl p-1 sm:p-1.5 text-left ring-1 transition-colors ${cls} ${
-                  dayEvents ? "cursor-default" : "cursor-pointer"
-                }`}
+                className={`relative flex min-h-[56px] sm:min-h-[68px] w-full cursor-pointer flex-col overflow-hidden rounded-lg sm:rounded-xl p-1 sm:p-1.5 text-left ring-1 transition-colors ${cls}`}
               >
                 <span
                   className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-sm font-medium ${
@@ -259,55 +269,93 @@ export function CalendarGrid({
             className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="font-semibold text-stone-900">
-              {blocked.has(selected) ? "Дата закрыта" : "Закрыть дату"}
-            </h3>
-            <p className="mt-0.5 text-sm text-stone-500">{formatDayLabel(selected)}</p>
+            {(events.get(selected)?.length ?? 0) > 0 ? (
+              // День с несколькими мероприятиями — выбрать, куда перейти.
+              <>
+                <h3 className="font-semibold text-stone-900">
+                  Мероприятия в этот день
+                </h3>
+                <p className="mt-0.5 text-sm text-stone-500">
+                  {formatDayLabel(selected)}
+                </p>
+                <div className="mt-4 space-y-2">
+                  {events.get(selected)!.map((e) => (
+                    <Link
+                      key={e.id}
+                      href={`/admin/events/${e.id}`}
+                      className="flex items-center justify-between gap-2 rounded-lg border border-stone-200 px-3 py-2.5 text-sm font-medium text-stone-800 hover:bg-stone-50"
+                    >
+                      <span className="truncate">{e.title}</span>
+                      <span className="text-brand-700">→</span>
+                    </Link>
+                  ))}
+                </div>
+                <div className="mt-5 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setSelected(null)}
+                    className="rounded-lg px-3 py-2 text-sm font-medium text-stone-500 hover:bg-stone-100"
+                  >
+                    Закрыть
+                  </button>
+                </div>
+              </>
+            ) : (
+              // Свободный/закрытый день — управление закрытием даты.
+              <>
+                <h3 className="font-semibold text-stone-900">
+                  {blocked.has(selected) ? "Дата закрыта" : "Закрыть дату"}
+                </h3>
+                <p className="mt-0.5 text-sm text-stone-500">
+                  {formatDayLabel(selected)}
+                </p>
 
-            <label className="mt-4 block text-sm text-stone-600">
-              Причина (необязательно)
-            </label>
-            <input
-              autoFocus
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && closeDate()}
-              placeholder="напр. выходной, бронь Иванов"
-              className="mt-1.5 w-full rounded-lg border border-stone-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-            />
+                <label className="mt-4 block text-sm text-stone-600">
+                  Причина (необязательно)
+                </label>
+                <input
+                  autoFocus
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && closeDate()}
+                  placeholder="напр. выходной, бронь Иванов"
+                  className="mt-1.5 w-full rounded-lg border border-stone-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                />
 
-            <div className="mt-5 flex items-center justify-between gap-2">
-              {blocked.has(selected) ? (
-                <button
-                  type="button"
-                  onClick={openDate}
-                  disabled={saving}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
-                >
-                  Открыть дату
-                </button>
-              ) : (
-                <span />
-              )}
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSelected(null)}
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-stone-500 hover:bg-stone-100"
-                >
-                  Отмена
-                </button>
-                <button
-                  type="button"
-                  onClick={closeDate}
-                  disabled={saving}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
-                >
-                  {saving && <Spinner />}
-                  {blocked.has(selected) ? "Сохранить" : "Закрыть дату"}
-                </button>
-              </div>
-            </div>
+                <div className="mt-5 flex items-center justify-between gap-2">
+                  {blocked.has(selected) ? (
+                    <button
+                      type="button"
+                      onClick={openDate}
+                      disabled={saving}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+                    >
+                      Открыть дату
+                    </button>
+                  ) : (
+                    <span />
+                  )}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelected(null)}
+                      className="rounded-lg px-3 py-2 text-sm font-medium text-stone-500 hover:bg-stone-100"
+                    >
+                      Отмена
+                    </button>
+                    <button
+                      type="button"
+                      onClick={closeDate}
+                      disabled={saving}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+                    >
+                      {saving && <Spinner />}
+                      {blocked.has(selected) ? "Сохранить" : "Закрыть дату"}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
