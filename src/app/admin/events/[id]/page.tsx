@@ -9,6 +9,7 @@ import { Category } from "@prisma/client";
 import { EventLink } from "./EventLink";
 import { DeleteEventButton } from "./DeleteEventButton";
 import { EventItems } from "./EventItems";
+import { DepositField } from "./DepositField";
 
 export const dynamic = "force-dynamic";
 
@@ -185,6 +186,19 @@ export default async function AdminEventDetail({
               <span className="text-xl font-semibold text-brand-700">
                 {formatKopecks(total)}
               </span>
+            </div>
+            <Row label="Задаток" value={`− ${formatKopecks(event.depositAmount)}`} />
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-stone-900">Осталось доплатить</span>
+              <span className="font-semibold text-stone-900">
+                {formatKopecks(total - event.depositAmount)}
+              </span>
+            </div>
+            <div className="border-t border-stone-200 pt-4">
+              <DepositField
+                eventId={event.id}
+                initialKopecks={event.depositAmount}
+              />
             </div>
           </div>
         </aside>

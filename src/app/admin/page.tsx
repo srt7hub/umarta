@@ -4,6 +4,7 @@ import { formatDate, formatKopecks } from "@/lib/format";
 import { computeCost } from "@/lib/cost";
 import { StatusBadge } from "@/components/ui";
 import { CreateEventButton } from "./CreateEventButton";
+import { DepositCheckbox } from "./DepositCheckbox";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,7 @@ export default async function AdminEventsPage() {
                   <th className="px-4 py-3 font-medium text-right">Гостей</th>
                   <th className="px-4 py-3 font-medium text-right">Стоимость</th>
                   <th className="px-4 py-3 font-medium">Статус</th>
+                  <th className="px-4 py-3 font-medium text-center">Задаток</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
@@ -74,6 +76,9 @@ export default async function AdminEventsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={e.status} />
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <DepositCheckbox eventId={e.id} initial={e.depositPaid} />
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Link
