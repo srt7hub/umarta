@@ -4,7 +4,7 @@ import { authOptions } from "./auth";
 
 // Проверка авторизации администратора для защищённых маршрутов
 export async function requireAdmin(): Promise<
-  { ok: true } | { ok: false; response: NextResponse }
+  { ok: true; email: string | null } | { ok: false; response: NextResponse }
 > {
   const session = await getServerSession(authOptions);
   if (!session) {
@@ -13,7 +13,7 @@ export async function requireAdmin(): Promise<
       response: NextResponse.json({ error: "Не авторизован" }, { status: 401 }),
     };
   }
-  return { ok: true };
+  return { ok: true, email: session.user?.email ?? null };
 }
 
 export function badRequest(message: string) {

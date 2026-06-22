@@ -97,6 +97,20 @@ model EventItem {
   createdAt DateTime @default(now())
 }
 
+// Дата, вручную закрытая администратором в календаре занятости (выходной,
+// бронь без мероприятия и т.п.). Мероприятия дают «занято» отдельно — по
+// Event.eventDate, в этой таблице не дублируются.
+model BlockedDate {
+  id        String   @id @default(cuid())
+  // Закрытый день. Время не используется — нормализуем к полуночи UTC.
+  date      DateTime @unique
+  // Короткая причина закрытия (необязательно): «выходной», «бронь Иванов».
+  note      String?
+  // Email администратора, закрывшего дату (для понимания «кто»).
+  createdBy String?
+  createdAt DateTime @default(now())
+}
+
 // Связь выбранных клиентом блюд с мероприятием
 model EventDish {
   id      String @id @default(cuid())

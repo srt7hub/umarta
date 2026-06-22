@@ -35,3 +35,15 @@ export function toDateInputValue(date: Date | string): string {
   const d = new Date(date);
   return d.toISOString().slice(0, 10);
 }
+
+// Ключ дня "YYYY-MM-DD" в UTC — для сопоставления дат без учёта времени/зоны.
+export function toDayKey(date: Date | string): string {
+  return new Date(date).toISOString().slice(0, 10);
+}
+
+// "YYYY-MM-DD" → Date в полночь UTC. null, если строка некорректна.
+export function dayKeyToUtcDate(key: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return null;
+  const d = new Date(`${key}T00:00:00.000Z`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
