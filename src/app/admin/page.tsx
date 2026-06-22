@@ -49,17 +49,13 @@ export default async function AdminEventsPage() {
         {/* Мобильные: карточки вместо таблицы */}
         <div className="space-y-3 sm:hidden">
           {events.map((e) => (
-            <div
+            <Link
               key={e.id}
-              className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm"
+              href={`/admin/events/${e.id}`}
+              className="block rounded-2xl border border-stone-200 bg-white p-4 shadow-sm transition-colors hover:border-brand-300 hover:bg-stone-50/60"
             >
               <div className="flex items-start justify-between gap-3">
-                <Link
-                  href={`/admin/events/${e.id}`}
-                  className="font-medium text-stone-900 hover:text-brand-700"
-                >
-                  {e.title}
-                </Link>
+                <span className="font-medium text-stone-900">{e.title}</span>
                 <StatusBadge status={e.status} />
               </div>
               <p className="mt-1 text-sm text-stone-500">
@@ -69,12 +65,9 @@ export default async function AdminEventsPage() {
                 <span className="font-semibold text-stone-900">
                   {formatKopecks(e.total)}
                 </span>
-                <label className="flex items-center gap-2 text-sm text-stone-600">
-                  <DepositCheckbox eventId={e.id} initial={e.depositPaid} />
-                  Задаток
-                </label>
+                <DepositCheckbox eventId={e.id} initial={e.depositPaid} withLabel />
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 
